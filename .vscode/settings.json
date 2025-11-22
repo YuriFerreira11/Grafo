@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "passeio.h": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c",
+        "stdbool.h": "c",
+        "caminhosimples.h": "c",
+        "limits": "c"
+    }
+}
