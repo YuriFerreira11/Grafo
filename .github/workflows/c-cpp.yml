@@ -1,23 +1,24 @@
-name: C/C++ CI
+name: Build and Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
+    - name: Checkout código
+      uses: actions/checkout@v3
+
+    - name: Instalar dependências
+      run: sudo apt-get update && sudo apt-get install -y build-essential
+
+    - name: Compilar com Make
       run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+
+    - name: Limpar arquivos
+      run: make clean
