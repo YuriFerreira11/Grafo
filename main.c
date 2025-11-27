@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include "MatrizAdj.h"
 #include "Passeio.h"
-#include "CaminhoSimples.h" 
+#include "CaminhoSimples.h"
 
 int main() {
     int vertices;
@@ -13,6 +13,7 @@ int main() {
     int origem_teste;
     int operacao_floydwarshall;
     int *testes;
+
     printf("Quantidade de vertices: ");
     if (scanf_s("%d", &vertices) != 1 || vertices <= 0) return 1;
     Grafo g = criaGrafo(vertices);
@@ -85,38 +86,35 @@ int main() {
         }
     }
     
-    // Teste 3: FLOYD-WARSHALL (Geralmente testado uma unica vez)
+    // Teste 3: FLOYD-WARSHALL (Todos os pares)
     printf("\nDeseja testar FLOYD-WARSHALL (Todos os Pares)? (1 para Sim / 0 para Nao): ");
     if (scanf_s("%d", &operacao_floydwarshall) == 1 && operacao_floydwarshall == 1) {
-        testarFloydWarshall(g, "Todos os Pares"); // Não requer vértice de origem
+        testarFloydWarshall(g, "Todos os Pares");
     }
 
+    // --- TESTE DE PASSEIOS ---
     int tamanho_teste, qnt_testes;
     int operacao_passeio;
-    printf("\nQuer testar os passeios pre-definidos? (1 para sim e 0 para não) ");
+    printf("\nQuer testar os passeios? (1 para sim e 0 para não) ");
     if (scanf_s("%d", &operacao_passeio) != 1) return 0;
-    if(operacao_passeio == 1){
+    if (operacao_passeio == 1) {
         printf("Quantos testes querá testar? ");
         scanf_s("%d", &qnt_testes);
-        for (int i = 0; i < qnt_testes; i++){
+        for (int i = 0; i < qnt_testes; i++) {
             printf("Qual tamanho em vértices, do teste %d: ", i + 1);
             scanf_s("%d", &tamanho_teste);
             int c;
-            while((c = getchar()) != '\n' && c != EOF);
+            while ((c = getchar()) != '\n' && c != EOF);
             testes = malloc(tamanho_teste * sizeof(int));
             printf("Digite o passeio: ");
-            for (int j = 0; j < tamanho_teste; j++){
+            for (int j = 0; j < tamanho_teste; j++) {
                 scanf_s("%d", &testes[j]);
             }
             char nome_teste[50];
             sprintf_s(nome_teste, 50, "Teste %d", i + 1);
             testarPasseio(g, tamanho_teste, testes, nome_teste);
-            
             free(testes);
         }
-        
-        
-
     }
 
     liberarmemoria(g);

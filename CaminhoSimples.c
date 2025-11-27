@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -6,340 +5,222 @@
 #include <limits.h>
 #include "CaminhoSimples.h"
 #include "MatrizAdj.h"
-typedef struct Caminho{
-    int *dist;
-    int *pred;
-    int *Q;
-}Caminho;
 
-void DIJKSTRA(Grafo g, int origem, int** dist_saida, int** pred_saida){
-    
+Caminho DIJKSTRA(Grafo g, int origem){
+    int **matriz = getMatriz(g);
     int V = getNumVertices(g);
-    int u = -1; 
+    Caminho c;
+
     int menor_dist = INT_MAX;
-    *dist_saida = (int*)malloc(V * sizeof(int));
-    *pred_saida = (int*)malloc(V * sizeof(int));
-    int *dist = *dist_saida;
-    int *pred = *pred_saida;
-    int *Q = (int*)malloc(V * sizeof(int));
+    c.dist = (int*)malloc(V * sizeof(int));
+    c.pred = (int*)malloc(V * sizeof(int));
+
+    c.Q = (int*)malloc(V * sizeof(int));
     for (int v = 0; v < V; v++){
-        dist[v] = INT_MAX;
-        pred[v] = -1;
+        c.dist[v] = INT_MAX;
+        c.pred[v] = -1;
+        c.Q[v] = 0;
     }
 
-    
-    
-    for (int i = 0; i < V; i++){
-        Q[i] = 0;
-    }
-    dist[origem] = 0;
+    c.dist[origem] = 0;
 
     while(1){
-        u = -1;
+        int u = -1; 
         menor_dist = INT_MAX;
         for (int i = 0; i < V; i++){
-        if(dist[i] < menor_dist && Q[i] == 0){
-            menor_dist = dist[i];
+        if(c.dist[i] < menor_dist && c.Q[i] == 0){
+            menor_dist = c.dist[i];
             u = i;
         }
     }
     if(u == -1 || menor_dist == INT_MAX) break;
-    Q[u] = 1;
-    int **matriz = getMatriz(g); // Acessa a matriz
+    c.Q[u] = 1;
+    
 
     for (int v = 0; v < V; v++) { 
         if (matriz[u][v] > 0) { 
-            if(dist[v] > dist[u] + matriz[u][v]){
-            dist[v] = dist[u] + matriz[u][v];
-            pred[v] = u;
+            if(c.dist[v] > c.dist[u] + matriz[u][v]){
+            c.dist[v] = c.dist[u] + matriz[u][v];
+            c.pred[v] = u;
         }
         }
     }
 
 }
-    free(Q);
+    return c;
 }
-void bellman_ford(Grafo g, int origem, int** dist_saida, int** pred_saida){
+void testarDijkstra(Grafo g, int origem, const char* nomeTeste) {
+    Caminho c = DIJKSTRA(g, origem);
+    int V = getNumVertices(g);
+
+    printf("\n--- DIJKSTRA: %s (Origem: %d) ---\n", nomeTeste, origem);
+    for (int i = 0; i < V; i++) {
+        if (c.dist[i] == INT_MAX)
+            printf("dist[%d] = INF, pred[%d] = %d\n", i, i, c.pred[i]);
+        else
+            printf("dist[%d] = %d, pred[%d] = %d\n", i, c.dist[i], i, c.pred[i]);
+    }
+
+    free(c.dist);
+    free(c.pred);
+    free(c.Q); // ainda libera memória, mas não imprime
+}
+
+
+
+
+
+Caminho bellman_ford(Grafo g, int origem){
     int V = getNumVertices(g);
     int **matriz = getMatriz(g);
-
-    *dist_saida = (int*)malloc(V * sizeof(int));
-    *pred_saida = (int*)malloc(V * sizeof(int));
-    int *dist = *dist_saida;
-    int *pred = *pred_saida;
+    Caminho c;
+    c.dist = malloc(V * sizeof(int));
+    c.pred = malloc(V * sizeof(int));
+    c.Q    = malloc(V * sizeof(int)); // manter consistência
 
     for (int v = 0; v < V; v++){
-        dist[v] = INT_MAX;
-        pred[v] = -1;
+        c.dist[v] = INT_MAX;
+        c.pred[v] = -1;
+        c.Q[v]    = 0;
     }
-    dist[origem] = 0;
+    c.dist[origem] = 0;
     
     for (int i = 0; i < V - 1; i++){ 
         bool trocou = false;
         for (int u = 0; u < V; u++){
             for (int v = 0; v < V; v++){
                 int peso = matriz[u][v];
-                if(peso > 0 && dist[u] != INT_MAX){
-                if(dist[v] > dist[u] + peso){
-                dist[v] = dist[u] + peso;
-                pred[v] = u;
-                trocou = true;
-                }
-            }  
+                if(peso > 0 && c.dist[u] != INT_MAX){
+                    if(c.dist[v] > c.dist[u] + peso){
+                        c.dist[v] = c.dist[u] + peso;
+                        c.pred[v] = u;
+                        trocou = true;
+                    }
+                }  
+            }
         }
+        if(!trocou) break;
     }
-        if(trocou == false){
-            break;
-        } 
-    }
+
+    // Verificação ciclo negativo
     for (int u = 0; u < V; u++){
         for (int v = 0; v < V; v++){
-            
-            int peso_uv = matriz[u][v];
-
-            if (peso_uv != 0 && dist[u] != INT_MAX) {
-                
-                if (dist[v] > dist[u] + peso_uv) {
-                    
-                    // Ciclo negativo detectado! O caminho é indefinido.
-                    printf("\n\nERRO DO BELLMAN-FORD: CICLO DE PESO NEGATIVO DETECTADO!\n");
-                    
-                    // Libera a memória alocada e retorna ponteiros NULL para sinalizar erro
-                    free(*dist_saida);
-                    free(*pred_saida);
-                    *dist_saida = NULL;
-                    *pred_saida = NULL;
-                    return; 
-                }
+            int peso = matriz[u][v];
+            if(peso != 0 && c.dist[u] != INT_MAX && c.dist[u] + peso < c.dist[v]){
+                // apenas sinaliza erro
+                free(c.dist);
+                free(c.pred);
+                free(c.Q);
+                c.dist = NULL;
+                c.pred = NULL;
+                c.Q    = NULL;
+                return c;
             }
-        } 
+        }
     }
+    return c;
+}
+void testarBellmanFord(Grafo g, int origem, const char* nomeTeste) {
+    Caminho c = bellman_ford(g, origem);
+    int V = getNumVertices(g);
+
+    if (c.dist == NULL) {
+        printf("\n--- BELLMAN-FORD: %s ---\n", nomeTeste);
+        printf("Erro: ciclo negativo detectado.\n");
+        return;
+    }
+
+    printf("\n--- BELLMAN-FORD: %s (Origem: %d) ---\n", nomeTeste, origem);
+    for (int i = 0; i < V; i++) {
+        if (c.dist[i] == INT_MAX)
+            printf("dist[%d] = INF, pred[%d] = %d\n", i, i, c.pred[i]);
+        else
+            printf("dist[%d] = %d, pred[%d] = %d\n", i, c.dist[i], i, c.pred[i]);
+    }
+
+    free(c.dist);
+    free(c.pred);
+    free(c.Q);
 }
 
-void floyd_warshal(Grafo g, int*** dist_saida, int*** pred_saida) {
+
+
+
+Caminho_Floyd floyd_warshall(Grafo g){
     int V = getNumVertices(g);
     int **matriz = getMatriz(g);
-    
-    // Alocação inicial dos vetores de ponteiros
-    *dist_saida = (int**)malloc(V * sizeof(int*));
-    *pred_saida = (int**)malloc(V * sizeof(int*));
+    Caminho_Floyd c;
+    c.tamanho = V;
 
-    if (*dist_saida == NULL || *pred_saida == NULL) {
-        if (*dist_saida) free(*dist_saida);
-        if (*pred_saida) free(*pred_saida);
-        *dist_saida = NULL;
-        *pred_saida = NULL;
-        return; 
-    }
+    c.dist = (int**)malloc(V * sizeof(int*));
+    c.pred = (int**)malloc(V * sizeof(int*));
 
-    // Alocação das linhas da matriz (e tratamento de falha)
-    for (int i = 0; i < V; i++) {
-        (*dist_saida)[i] = (int*)malloc(V * sizeof(int));
-        
-        // Se a alocação de dist falhar, libera o que foi alocado e retorna NULL.
-        if ((*dist_saida)[i] == NULL) { 
-            for (int j = 0; j < i; j++) {
-                free((*dist_saida)[j]);
-                free((*pred_saida)[j]); // Libera pred alocado antes
-            }
-            free(*dist_saida);
-            free(*pred_saida);
-            *dist_saida = NULL;
-            *pred_saida = NULL;
-            return;
-        }
-
-        (*pred_saida)[i] = (int*)malloc(V * sizeof(int));
-        
-        // Se a alocação de pred falhar, libera tudo e retorna NULL.
-        if ((*pred_saida)[i] == NULL) {
-            for (int j = 0; j < i; j++) {
-                free((*dist_saida)[j]);
-                free((*pred_saida)[j]);
-            }
-            // Libera a última linha de dist que foi alocada com sucesso
-            free((*dist_saida)[i]); 
-            free(*dist_saida);
-            free(*pred_saida);
-            *dist_saida = NULL;
-            *pred_saida = NULL;
-            return;
-        }
-    }
-    
-    int **dist = *dist_saida;
-    int **pred = *pred_saida;
-    
-    // 1. Inicialização das matrizes
     for (int i = 0; i < V; i++){
+        c.pred[i] = (int*)malloc(V * sizeof(int));
+        c.dist[i] = (int*)malloc(V * sizeof(int));
         for (int j = 0; j < V; j++){
+            
             int peso = matriz[i][j];
             if(i == j){
-                dist[i][j] = 0;
-                pred[i][j] = -1;
+                c.dist[i][j] = 0;
+                c.pred[i][j] = -1;
             }
             else if(peso != 0){
-                dist[i][j] = peso;
-                pred[i][j] = i;
+                c.dist[i][j] = peso;
+                c.pred[i][j] = i;
             }
             else{
-                dist[i][j] = INT_MAX;
-                pred[i][j] = -1;
+                c.dist[i][j] = INT_MAX;
+                c.pred[i][j] = -1;
             }
         }
     }
-    
-    // 2. Lógica principal (três laços aninhados)
     for (int k = 0; k < V; k++){
         for (int i = 0; i < V; i++){
             for (int j = 0; j < V; j++){
-                    // Verifica se dist[i][k] e dist[k][j] são alcançáveis (evita overflow)
-                    if (dist[i][k] != INT_MAX && dist[k][j] != INT_MAX && dist[i][k] + dist[k][j] < dist[i][j]) {
-                        dist[i][j] = dist[i][k] + dist[k][j];
-                        pred[i][j] = pred[k][j];
+        
+                    if (c.dist[i][k] != INT_MAX && c.dist[k][j] != INT_MAX && c.dist[i][k] + c.dist[k][j] < c.dist[i][j]) {
+                        c.dist[i][j] = c.dist[i][k] + c.dist[k][j];
+                        c.pred[i][j] = c.pred[k][j];
                     }
                 }
             }
         }
+        return c;
     }
-void testarDijkstra(Grafo g, int origem_dijkstra, const char* nomeTeste) {
-    int *dist_resultados = NULL;
-    int *pred_resultados = NULL;
-    int V = getNumVertices(g);
 
-    printf("\n--- Testando DIJKSTRA: %s (Origem: %d) --- \n", nomeTeste, origem_dijkstra);
-
-    // Chama o algoritmo (a função aloca a memória)
-    DIJKSTRA(g, origem_dijkstra, &dist_resultados, &pred_resultados);
-
-    if (dist_resultados != NULL) {
-        printf("Distâncias (dist): ");
-        for(int i = 0; i < V; i++) {
-            if (dist_resultados[i] == INT_MAX) {
-                printf("[%d]=INF ", i);
-            } else {
-                printf("[%d]=%d ", i, dist_resultados[i]);
-            }
-        }
-        printf("\nPredecessores (pred): ");
-        for(int i = 0; i < V; i++) {
-            printf("[%d]=%d ", i, pred_resultados[i]);
-        }
-        printf("\n");
-        
-        // 🗑️ Limpeza de Memória (O testador é responsável pela memória alocada)
-        free(dist_resultados);
-        free(pred_resultados);
-    } else {
-        printf("Erro ao executar DIJKSTRA.\n");
-    }
-}
-void testarBellmanFord(Grafo g, int origem_bellmanford, const char* nomeTeste) {
-    int *dist_resultados = NULL;
-    int *pred_resultados = NULL;
-    int V = getNumVertices(g);
-
-    printf("\n--- Testando BELLMAN-FORD: %s (Origem: %d) --- \n", nomeTeste, origem_bellmanford);
-
-    // Chama o algoritmo (a função aloca a memória)
-    bellman_ford(g, origem_bellmanford, &dist_resultados, &pred_resultados);
-
-    if (dist_resultados != NULL) {
-        printf("Distâncias (dist): ");
-        for(int i = 0; i < V; i++) {
-            if (dist_resultados[i] == INT_MAX) {
-                printf("[%d]=INF ", i);
-            } else {
-                printf("[%d]=%d ", i, dist_resultados[i]);
-            }
-        }
-        printf("\nPredecessores (pred): ");
-        for(int i = 0; i < V; i++) {
-            printf("[%d]=%d ", i, pred_resultados[i]);
-        }
-        printf("\n");
-        
-        // 🗑️ Limpeza de Memória (O testador é responsável pela memória alocada)
-        free(dist_resultados);
-        free(pred_resultados);
-    } else {
-        printf("Erro ao executar BELLMAN-FORD.\n");
-    }
-}
 void testarFloydWarshall(Grafo g, const char* nomeTeste) {
-    int V = getNumVertices(g);
-    int **dist_resultados = NULL;
-    int **pred_resultados = NULL;
+    Caminho_Floyd t = floyd_warshall(g);
+    int V = t.tamanho;
 
-    printf("\n--- Testando FLOYD-WARSHALL: %s (Todos os Pares) --- \n", nomeTeste);
+    printf("\n--- FLOYD-WARSHALL: %s (Todos os Pares) ---\n", nomeTeste);
 
-    floyd_warshal(g, &dist_resultados, &pred_resultados);
-
-    if (dist_resultados != NULL) {
-        
-        printf("Matriz de Distâncias (dist):\n");
-        
-        // Cabeçalho das colunas
-        printf(" pos |");
-        for(int j = 0; j < V; j++) {
-            printf("%5d |", j);
+    printf("\nMatriz de Distâncias:\n");
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < V; j++) {
+            if (t.dist[i][j] == INT_MAX)
+                printf("INF ");
+            else
+                printf("%3d ", t.dist[i][j]);
         }
         printf("\n");
-        
-        // Separador
-        printf("-----");
-        for(int j = 0; j < V; j++) {
-            printf("------");
-        }
-        printf("\n");
-
-        for(int i = 0; i < V; i++) {
-            printf("%4d |", i); // Cabeçalho da Linha
-            for(int j = 0; j < V; j++) {
-                if (dist_resultados[i][j] == INT_MAX) {
-                    printf("  INF |");
-                } else {
-                    printf("%5d |", dist_resultados[i][j]);
-                }
-            }
-            printf("\n");
-        }
-        
-        // --- SAÍDA DA MATRIZ DE PREDECESSORES ---
-        printf("\nMatriz de Predecessores (pred):\n");
-        printf(" pos |");
-        for(int j = 0; j < V; j++) {
-            printf("%5d |", j);
-        }
-        printf("\n");
-        
-        // Separador
-        printf("-----");
-        for(int j = 0; j < V; j++) {
-            printf("------");
-        }
-        printf("\n");
-
-        for(int i = 0; i < V; i++) {
-            printf("%4d |", i); // Cabeçalho da Linha
-            for(int j = 0; j < V; j++) {
-                if (pred_resultados[i][j] == -1) {
-                    printf("    - |"); // Usa o hífen para -1
-                } else {
-                    printf("%5d |", pred_resultados[i][j]);
-                }
-            }
-            printf("\n");
-        }
-        
-        // Limpeza de Memória (Matrizes 2D)
-        for(int i = 0; i < V; i++) {
-            free(dist_resultados[i]);
-            free(pred_resultados[i]);
-        }
-        free(dist_resultados);
-        free(pred_resultados);
-    } else {
-        printf("Erro ao executar FLOYD-WARSHALL (Falha de alocação).\n");
     }
+
+    printf("\nMatriz de Predecessores:\n");
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < V; j++) {
+            if (t.pred[i][j] == -1)
+                printf(" -  ");
+            else
+                printf("%3d ", t.pred[i][j]);
+        }
+        printf("\n");
+    }
+
+    for (int i = 0; i < V; i++) {
+        free(t.dist[i]);
+        free(t.pred[i]);
+    }
+    free(t.dist);
+    free(t.pred);
 }

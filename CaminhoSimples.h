@@ -3,17 +3,29 @@
 
 #include "MatrizAdj.h"
 #include <stddef.h>
+#include <limits.h>
 
-// DIJKSTRA
-void DIJKSTRA(Grafo g, int origem, int** dist_saida, int** pred_saida);
+typedef struct {
+    int *dist;
+    int *pred;
+    int *Q;
+}Caminho;
+typedef struct {
+    int **dist; 
+    int **pred;
+    int tamanho;
+}Caminho_Floyd;
+
+// --- DIJKSTRA ---
+Caminho DIJKSTRA(Grafo g, int origem);
 void testarDijkstra(Grafo g, int origem_dijkstra, const char* nomeTeste);
 
-//Bellman_ford
+// --- BELLMAN-FORD ---
+Caminho bellman_ford(Grafo g, int origem);
 void testarBellmanFord(Grafo g, int origem_bellmanford, const char* nomeTeste);
-void bellman_ford(Grafo g, int origem, int** dist_saida, int** pred_saida);
 
-
-//FloydWarshall
-void floyd_warshal(Grafo g, int*** dist_saida, int*** pred_saida);
+// --- FLOYD-WARSHALL ---
+Caminho_Floyd floyd_warshall(Grafo g);
 void testarFloydWarshall(Grafo g, const char* nomeTeste);
+
 #endif
